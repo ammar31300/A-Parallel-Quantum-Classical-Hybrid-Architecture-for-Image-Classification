@@ -1,0 +1,16 @@
+
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+__pycache__/
+*.tar.gz
+*.zip
+*.gz
+*.pt
+*.pth
+*.path
+*.h5
+data/
+datasets/
+save_models/
+seek_thermal_raw/
+pennylane-lightning/
