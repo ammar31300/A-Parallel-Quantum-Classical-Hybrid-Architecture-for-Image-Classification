@@ -1,724 +1,714 @@
 # A Parallel Quantum-Classical Hybrid Architecture for Image Classification
 
-<p align="center">
+A **Parallel Quantum-Classical Hybrid Neural Network (PQCHNN)** for image classification, combining convolutional feature extraction with multiple parallel variational quantum circuits.
 
-**A parallel hybrid quantum-classical framework for image classification using convolutional feature extraction and multiple parameterized quantum neural network branches.**
-
-</p>
-
-<p align="center">
-
-![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
-![PyTorch](https://img.shields.io/badge/PyTorch-Deep%20Learning-ee4c2c)
-![PennyLane](https://img.shields.io/badge/PennyLane-Quantum%20ML-6c5ce7)
-![Jupyter](https://img.shields.io/badge/Jupyter-Notebook-orange)
-![Quantum](https://img.shields.io/badge/Quantum-Hybrid-purple)
-![License](https://img.shields.io/badge/License-MIT-green)
-
-</p>
+The project investigates whether parallel quantum feature transformations can complement classical convolutional representations across datasets with substantially different visual characteristics, ranging from handwritten grayscale digits to natural RGB images and thermal object imagery.
 
 ---
 
-## 📌 Overview
+## Abstract
 
-This repository presents a **Parallel Quantum-Classical Hybrid Architecture** for image classification.
+This project presents a parallel quantum-classical hybrid architecture for image classification in which a classical convolutional neural network extracts spatial representations and multiple quantum neural network (QNN) branches independently transform these representations into quantum-derived feature vectors.
 
-The central idea is to combine the strengths of classical convolutional neural networks with multiple parallel quantum neural network (QNN) branches.
+Instead of using a single quantum circuit, the proposed architecture employs **multiple parallel quantum heads**, allowing different quantum encoding strategies and spatial feature organizations to process complementary aspects of the classical feature map.
 
-Instead of sending classical CNN features into a single quantum circuit, the proposed architecture creates several **parallel quantum heads**, where each head receives a different representation or encoding of the extracted features.
+Three quantum feature transformation mechanisms are investigated:
 
-The general pipeline is:
+1. **Amplitude Encoding**
+2. **Dense Angle Encoding**
+3. **ZZ-Feature Encoding**
+
+The resulting quantum representations are concatenated and passed to a classical classifier.
+
+The framework is evaluated across three image-classification settings:
+
+* **MNIST** — grayscale handwritten digits
+* **CIFAR-10** — natural RGB images
+* **SeekThermal** — thermal object images containing Car, Cat, and Man classes
+
+A fully classical CNN baseline is implemented using the same general feature-extraction philosophy, allowing the contribution of the quantum components to be investigated experimentally.
+
+---
+
+# 1. Research Motivation
+
+Classical convolutional neural networks (CNNs) have demonstrated strong performance in visual recognition tasks. However, quantum machine learning provides an alternative mechanism for transforming learned feature representations through quantum states, parameterized rotations, entanglement, and quantum measurements.
+
+The central hypothesis investigated in this project is:
+
+> **Can multiple parallel quantum feature transformations provide complementary representations of classical CNN features for image classification?**
+
+The proposed framework therefore combines:
+
+$$
+\text{Image}
+\rightarrow
+\text{CNN Feature Extraction}
+\rightarrow
+\text{Parallel Quantum Processing}
+\rightarrow
+\text{Feature Fusion}
+\rightarrow
+\text{Classification}
+$$
+
+The architecture is designed to preserve the strengths of classical deep learning in spatial feature extraction while using quantum circuits as trainable nonlinear feature transformations.
+
+---
+
+# 2. Main Contributions
+
+The project provides the following components:
+
+* A reusable **classical convolutional feature extractor**
+* A **parallel quantum neural network architecture**
+* Multiple quantum data-encoding mechanisms
+* Amplitude-based quantum encoding
+* Dense angle-based encoding
+* ZZ-interaction-based feature encoding
+* Multiple parallel quantum heads
+* Trainable variational quantum circuits
+* Ring and skip-style entanglement patterns
+* Quantum expectation-value measurements
+* A fully classical baseline
+* Evaluation on three substantially different image datasets
+* Accuracy, Macro-F1 and Weighted-F1 evaluation
+* Confusion matrices and classification reports
+* Reproducible training configuration
+* Checkpointing and early stopping
+
+---
+
+# 3. Overall Architecture
+
+The complete pipeline can be summarized as:
 
 ```text
-Input Image
-     │
-     ▼
-┌──────────────────────┐
-│ Classical CNN        │
-│ Feature Extraction   │
-└──────────┬───────────┘
-           │
-           ▼
-   Classical Features
-           │
-     ┌─────┴─────┐
-     │           │
-     ▼           ▼
- Quantum Head 1  Quantum Head 2  ... Quantum Head N
-     │           │                    │
-     └─────┬─────┴──────────┬─────────┘
-           │
-           ▼
-     Quantum Measurements
-           │
-           ▼
-   Concatenated Quantum
-       Feature Vector
-           │
-           ▼
-      Linear Classifier
-           │
-           ▼
-        Prediction
+                         Input Image
+                              │
+                              ▼
+                  ┌──────────────────────┐
+                  │   Classical CNN      │
+                  │   Feature Extractor  │
+                  └──────────┬───────────┘
+                             │
+                             ▼
+                    Classical Feature Map
+                             │
+             ┌───────────────┼────────────────┐
+             │               │                │
+             ▼               ▼                ▼
+      ┌────────────┐  ┌────────────┐  ┌────────────┐
+      │ Quantum    │  │ Quantum    │  │ Quantum    │
+      │ Head 1     │  │ Head 2     │  │ Head 3     │
+      │ Amplitude  │  │ Dense      │  │ ZZ Feature │
+      └─────┬──────┘  └─────┬──────┘  └─────┬──────┘
+            │               │                │
+            ▼               ▼                ▼
+       Quantum           Quantum          Quantum
+       Features          Features         Features
+            │               │                │
+            └───────────────┼────────────────┘
+                            ▼
+                    Feature Concatenation
+                            │
+                            ▼
+                    Classical Classifier
+                            │
+                            ▼
+                         Prediction
 ```
 
-The repository evaluates this concept on more than one image-classification setting, including a thermal-image dataset, while keeping the main parallel hybrid architecture consistent.
+The key architectural principle is **parallel quantum processing rather than a single sequential quantum branch**.
 
 ---
 
-# 🎯 Motivation
+# 4. Mathematical Formulation
 
-Classical CNNs are highly effective at extracting spatial features from images. However, quantum machine learning provides an alternative mechanism for nonlinear feature transformation through parameterized quantum circuits.
+Let an input image be represented by
 
-A hybrid architecture attempts to combine these two paradigms:
+$$
+X \in \mathbb{R}^{C\times H\times W}
+$$
 
-* **CNNs** provide efficient spatial feature extraction.
-* **Quantum circuits** provide nonlinear quantum transformations.
-* **Parallel quantum branches** provide multiple feature-processing pathways.
-* **Classical classification layers** convert the resulting quantum features into final predictions.
+where \(C\) denotes the number of channels.
 
-The goal is not to claim an automatic quantum advantage, but to investigate whether a parallel quantum-classical architecture can provide a useful and experimentally scalable framework for image classification.
+The classical convolutional encoder is represented by
 
----
+$$
+F = f_{\theta_c}(X)
+$$
 
-# 🧠 Main Contributions
+where \(F\) is the learned spatial feature representation and \(\theta_c\) represents the trainable classical parameters.
 
-The implementation focuses on several ideas.
+The feature representation is subsequently transformed by \(P\) parallel quantum branches:
 
-### 1. Classical feature extraction
+$$
+Q_i = q_{\theta_{q_i}}(F), \qquad i=1,\ldots,P
+$$
 
-A convolutional backbone first converts the input image into a compact feature representation.
+where \(q_{\theta_{q_i}}\) represents the \(i\)-th parameterized quantum transformation.
 
-### 2. Parallel quantum processing
+The resulting quantum representations are concatenated:
 
-Instead of using one quantum circuit, multiple independent quantum heads are executed in parallel conceptually:
+$$
+Q =
+Q_1 \Vert Q_2 \Vert \cdots \Vert Q_P
+$$
 
-```text
-Feature Representation
-        │
- ┌──────┼──────┐
- ▼      ▼      ▼
-QNN-1  QNN-2  QNN-3
- │      │      │
- └──────┼──────┘
-        ▼
-Concatenated Quantum Features
-```
+where \(\Vert\) denotes feature concatenation.
 
-### 3. Multiple quantum encoding strategies
+The final prediction is then obtained using a classical classifier:
 
-The implementation supports different quantum feature-processing modes:
+$$
+\hat{y} =
+g_{\theta_c'}(Q)
+$$
 
-* Amplitude encoding
-* ZZ-based feature encoding
-* Dense angle encoding
+The complete model can therefore be expressed as
 
-### 4. Different entanglement patterns
+$$
+\boxed{
+\hat{y}
+=
+g_{\theta_c'}
+\left(
+q_{\theta_{q_1}}(f_{\theta_c}(X))
+\Vert
+\cdots
+\Vert
+q_{\theta_{q_P}}(f_{\theta_c}(X))
+\right)
+}
+$$
 
-The quantum circuits can use different entanglement structures, including:
-
-* Ring entanglement
-* Pairwise entanglement
-* Ring + skip connections
-
-### 5. Classical baseline
-
-A purely classical model is trained under the same general experimental framework to provide a reference point.
-
----
-
-# 🏗️ Architecture
-
-## High-Level Architecture
-
-The complete hybrid architecture can be summarized as:
-
-```text
-                  Input Image
-                       │
-                       ▼
-             ┌─────────────────┐
-             │ Classical CNN   │
-             │    Backbone     │
-             └────────┬────────┘
-                      │
-              Feature Representation
-                      │
-          ┌───────────┼───────────┐
-          │           │           │
-          ▼           ▼           ▼
-     Quantum Head  Quantum Head  Quantum Head
-         #1            #2            #3
-          │           │           │
-          ▼           ▼           ▼
-      Quantum       Quantum       Quantum
-    Measurement   Measurement   Measurement
-          │           │           │
-          └───────────┼───────────┘
-                      │
-                      ▼
-             Feature Concatenation
-                      │
-                      ▼
-              Classical Classifier
-                      │
-                      ▼
-                  Prediction
-```
+The parameters of both classical and quantum components are optimized jointly using backpropagation through the differentiable quantum simulation framework.
 
 ---
 
-# 🔬 Classical CNN Backbone
+# 5. Classical CNN Feature Extractor
 
-The classical backbone is responsible for extracting spatial representations from the input image.
+The classical component is responsible for extracting spatial features before quantum processing.
 
-The implemented convolutional encoder contains four convolutional stages:
+The general structure follows:
 
 ```text
 Input
-  │
-  ├── Conv2D
-  ├── BatchNorm
-  ├── ReLU
-  ├── MaxPool
-  │
-  ├── Conv2D
-  ├── BatchNorm
-  ├── ReLU
-  ├── MaxPool
-  │
-  ├── Conv2D
-  ├── BatchNorm
-  ├── ReLU
-  ├── MaxPool
-  │
-  └── Conv2D
-      BatchNorm
-      ReLU
+ │
+ ▼
+Conv2D
+ │
+BatchNorm
+ │
+ReLU
+ │
+MaxPooling
+ │
+Conv2D
+ │
+BatchNorm
+ │
+ReLU
+ │
+MaxPooling
+ │
+Feature Projection
+ │
+▼
+Quantum Input Representation
 ```
 
-The channel progression is:
+For the first notebook, the CNN backbone uses lightweight convolutional layers with channel progression such as:
 
-```text
-Input channels
-      ↓
-16 channels
-      ↓
-32 channels
-      ↓
-64 channels
-      ↓
-64 channels
-```
+$$
+C_{in}
+\rightarrow 8
+\rightarrow 16
+$$
 
-The backbone can return both:
+followed by spatial pooling and feature projection.
 
-* a compact feature vector
-* a spatial feature map
+The SeekThermal implementation uses a deeper feature extractor with approximately:
 
-This is particularly important for the amplitude-based parallel quantum branch.
+$$
+16 \rightarrow 32 \rightarrow 64 \rightarrow 64
+$$
+
+channels.
+
+This design allows the same overall hybrid philosophy to be applied to datasets with different image characteristics.
 
 ---
 
-# ⚛️ Parallel Quantum Neural Network
+# 6. Parallel Quantum Architecture
 
-The main quantum component is implemented through a reusable `BaseParallelQNNLayer`.
+A major component of the proposed framework is the use of multiple quantum branches.
 
-Conceptually, it performs:
+The default configuration uses:
 
-```text
-Classical Features
-       │
-       ▼
-Head-specific preparation
-       │
- ┌─────┼─────┐
- ▼     ▼     ▼
-QNode  QNode  QNode
- 1      2      3
- │      │      │
- └──────┼──────┘
-        ▼
- Concatenation
-        │
-        ▼
-Quantum Feature Vector
-```
+$$
+P=3
+$$
 
-Each quantum head owns:
+parallel quantum heads.
 
-* an independent QNode
-* trainable variational parameters
-* a head-specific feature representation
-* a potentially different entanglement pattern
+Each head receives a representation derived from the classical CNN feature map and applies a different quantum feature transformation.
 
-For each head, the trainable parameter tensor follows the structure:
+The three principal implementations are:
 
-```text
-(n_layers, 2, n_qubits, 3)
-```
-
-where the two blocks correspond to two parameterized rotation stages.
+| Quantum Model            | Encoding Strategy   | Main Purpose                                               |
+| ------------------------ | ------------------- | ---------------------------------------------------------- |
+| HybridAmplitudeParallel  | Amplitude Encoding  | Encodes normalized feature vectors into quantum amplitudes |
+| HybridDenseAngleParallel | Angle Encoding      | Maps learned features directly to rotation angles          |
+| HybridZZFeatureParallel  | ZZ Feature Encoding | Combines rotations with data-dependent ZZ interactions     |
 
 ---
 
-# 🔀 Parallel Head Design
+# 7. Quantum Head 1 — Amplitude Encoding
 
-The default SeekThermal configuration uses:
+The amplitude-based branch converts a classical vector into the amplitudes of a quantum state.
 
-```text
-Number of parallel heads = 3
-Number of qubits         = 6
-Quantum layers           = 3
-```
+For \(n\) qubits, the Hilbert-space dimension is
 
-Therefore each quantum head produces measurements from six qubits.
+$$
+D=2^n
+$$
 
-For every qubit, the implementation measures:
+For example, with six qubits:
 
-```text
-⟨X⟩
-⟨Z⟩
-```
+$$
+2^6=64
+$$
 
-Consequently, each head produces:
+Therefore, a 64-dimensional feature vector can be directly mapped to a six-qubit quantum state.
 
-```text
-6 qubits × 2 observables = 12 features
-```
+Given
 
-With three parallel heads:
+$$
+x=(x_0,x_1,\ldots,x_{63})
+$$
 
-```text
-3 × 6 × 2 = 36 quantum features
-```
+the normalized quantum state is
 
-These features are concatenated and passed to the final classifier.
+$$
+|\psi(x)\rangle
+=
+\sum_{i=0}^{63} x_i |i\rangle
+$$
 
----
+subject to
 
-# ⚛️ Quantum Encoding Modes
+$$
+\sum_i |x_i|^2=1
+$$
 
-The repository implements three major quantum variants.
-
----
-
-## 1. HybridAmplitudeParallel
-
-### Amplitude Encoding
-
-The amplitude variant uses the CNN spatial feature map and converts it into a vector suitable for amplitude encoding.
-
-The implementation applies:
-
-```text
-CNN Feature Map
-      │
-      ▼
-Spatial permutation
-      │
-      ▼
-Adaptive Average Pooling
-      │
-      ▼
-Flatten
-      │
-      ▼
-Linear projection
-      │
-      ▼
-Amplitude vector
-      │
-      ▼
-AmplitudeEmbedding
-```
-
-For six qubits, the Hilbert-space dimension is:
-
-```text
-2^6 = 64
-```
-
-The configuration therefore uses a 64-dimensional quantum representation.
-
-The circuit initializes the quantum state using:
-
-```python
-qml.AmplitudeEmbedding(
-    features=amp_batch,
-    wires=range(n_qubits),
-    normalize=True,
-    pad_with=0.0,
-)
-```
+The implementation uses amplitude normalization and zero-padding when necessary.
 
 ---
 
-# 🔢 Spatial Permutation Strategy
+# 8. Spatial Feature Permutation
 
-One interesting part of the amplitude model is the use of different deterministic spatial permutations for different quantum heads.
+Before amplitude encoding, the classical feature map can be reorganized using different spatial permutation strategies.
 
-The implementation supports permutation families such as:
+This is motivated by the observation that the ordering of classical features affects how information is represented in a quantum state.
 
-* Identity
-* Serpentine
-* Checkerboard
-* Row-shift
-* Column-shift
-* Reverse
-* Affine permutation
+Possible spatial organization strategies include transformations such as:
+
+* Identity ordering
+* Serpentine ordering
+* Checkerboard ordering
+* Row shifting
+* Column shifting
+* Reverse ordering
 * Diagonal wrapping
+* Other structured permutations
 
-This allows different quantum heads to process different spatial arrangements of the same CNN feature map.
-
-Conceptually:
-
-```text
-CNN Feature Map
-       │
- ┌─────┼─────┐
- ▼     ▼     ▼
-Perm1 Perm2 Perm3
- │     │     │
- ▼     ▼     ▼
-QNN1  QNN2  QNN3
-```
-
-This provides diversity between the parallel branches without requiring completely different CNN backbones.
+The goal is not to change the information content, but to expose different spatial organizations of the same learned feature representation to the quantum circuit.
 
 ---
 
-# 2. HybridDenseAngleParallel
+# 9. Quantum Head 2 — Dense Angle Encoding
 
-The dense-angle variant converts the classical feature vector into quantum rotation angles.
+The dense angle encoding branch maps classical features into quantum rotation angles.
 
-The feature vector is reshaped into:
+A typical transformation is:
 
-```text
-Parallel Heads
-      ×
-Quantum Layers
-      ×
-2 × Number of Qubits
-```
+$$
+\theta_i = \pi\tanh(x_i)
+$$
 
-The implementation applies normalization and maps the resulting values using:
+The bounded nonlinear transformation prevents extremely large rotation angles.
 
-```python
-torch.tanh(x) * torch.pi
-```
+The encoded state can then be generated using parameterized rotations such as:
 
-The quantum circuit then applies parameterized rotations such as:
+$$
+R_X(\theta_i),\qquad R_Y(\theta_i)
+$$
 
-```text
-RX
-RY
-```
+or combinations of trainable rotations.
 
-followed by data-dependent interactions and variational layers.
-
-The overall structure is:
+The general structure is:
 
 ```text
-Classical Features
-       │
-       ▼
-Feature Projection / Reshaping
-       │
-       ▼
-Angle Encoding
-       │
-       ▼
-RX + RY
-       │
-       ▼
-Data-dependent ZZ interaction
-       │
-       ▼
-Variational Rot
-       │
-       ▼
+CNN Features
+     │
+     ▼
+Dense Projection
+     │
+     ▼
+Angle Transformation
+     │
+     ▼
+RX / RY Encoding
+     │
+     ▼
+Variational Rotations
+     │
+     ▼
 Entanglement
-       │
-       ▼
-Variational Rot
-       │
-       ▼
+     │
+     ▼
 Measurement
 ```
 
 ---
 
-# 3. HybridZZFeatureParallel
+# 10. Quantum Head 3 — ZZ Feature Encoding
 
-The ZZ-based architecture uses two feature channels for every qubit.
+The ZZ-based quantum branch introduces feature-dependent two-qubit interactions.
 
-For each quantum layer:
+For neighboring qubits \(i,j\), a ZZ interaction can be represented by
 
-```text
-Feature Channel 1 → RY
-Feature Channel 2 → RZ
-```
+$$
+e^{-i\phi_{ij}Z_iZ_j}
+$$
 
-The implementation also introduces a data-dependent ZZ interaction:
+where \(\phi_{ij}\) depends on the input features and/or a scaling parameter.
+
+The implementation uses a configurable factor:
+
+$$
+\text{zz\_scale}=0.25
+$$
+
+A typical decomposition of the interaction is:
 
 ```text
 CNOT
-  │
- RZ
-  │
+ │
+RZ(φ)
+ │
 CNOT
 ```
 
-The interaction strength is controlled by:
-
-```python
-zz_scale = 0.25
-```
-
-The circuit therefore combines:
-
-* single-qubit data encoding
-* nonlinear interaction
-* variational rotations
-* entanglement
-* quantum measurement
+This allows classical feature information to influence correlations between qubits rather than being represented only by independent single-qubit rotations.
 
 ---
 
-# 🔗 Variational Quantum Circuit
+# 11. Variational Quantum Circuit
 
-All three quantum modes share a common variational structure.
+Each quantum branch contains trainable variational parameters.
 
-Each quantum layer follows approximately:
+A parameterized single-qubit rotation can be represented as:
 
-```text
-Data Encoding
-      │
-      ▼
-Parameterized Rotations
-      │
-      ▼
-Entanglement
-      │
-      ▼
-Parameterized Rotations
-```
+$$
+Rot(\alpha,\beta,\gamma)
+=
+R_Z(\gamma)
+R_Y(\beta)
+R_Z(\alpha)
+$$
 
-The trainable rotation is implemented with:
+The circuit therefore contains both:
 
-```python
-qml.Rot(
-    theta,
-    phi,
-    omega,
-    wires=q
-)
-```
+1. Data-dependent operations
+2. Trainable quantum operations
 
-This gives each qubit three trainable rotational parameters per rotation block.
+A simplified layer can be expressed as:
+
+$$
+U_l(\mathbf{x},\theta_l)
+=
+U_{\text{entangle}}
+U_{\text{var}}(\theta_l)
+U_{\text{encode}}(\mathbf{x})
+$$
+
+For \(L\) quantum layers:
+
+$$
+U(\mathbf{x},\Theta)
+=
+U_L
+\cdots
+U_2
+U_1
+$$
+
+The default SeekThermal configuration uses:
+
+$$
+n_{\text{qubits}}=6
+$$
+
+and
+
+$$
+n_{\text{layers}}=3
+$$
+
+per quantum branch.
 
 ---
 
-# 🔗 Entanglement Patterns
+# 12. Entanglement Strategy
 
-Three entanglement patterns are implemented.
+Entanglement is introduced to allow information to propagate between quantum features.
 
-## Ring
+The circuit supports structured connectivity patterns including:
 
-Each qubit interacts with the next qubit:
+* Ring connectivity
+* Pairwise interactions
+* Ring + skip-style connections
+* Layer-dependent connectivity shifts
 
-```text
-q0 ──► q1
-      │
-q2 ◄──q1 ...
-```
+A ring structure can be represented as:
 
-More precisely, the circuit creates cyclic nearest-neighbor interactions.
+$$
+q_0-q_1-q_2-\cdots-q_{n-1}-q_0
+$$
+
+This provides a compact way of creating correlations among neighboring qubits.
+
+The architecture can additionally modify the interaction pattern between layers, allowing different quantum layers to expose different correlation structures.
 
 ---
 
-## Pairwise
+# 13. Quantum Measurements
 
-The circuit creates alternating pairwise interactions.
+After the variational circuit, the model does not directly use the full quantum state.
+
+Instead, measurable expectation values are extracted.
+
+For each qubit, the implementation can measure operators such as
+
+$$
+\langle X_i\rangle
+=
+\langle\psi|X_i|\psi\rangle
+$$
+
+and
+
+$$
+\langle Z_i\rangle
+=
+\langle\psi|Z_i|\psi\rangle
+$$
+
+For six qubits, measuring both \(X\) and \(Z\) gives:
+
+$$
+6\times2=12
+$$
+
+features per quantum head.
+
+With three parallel heads:
+
+$$
+3\times12=36
+$$
+
+quantum features are obtained before the final classifier.
+
+---
+
+# 14. Feature Fusion
+
+The output of each quantum branch is concatenated:
+
+$$
+Q =
+[Q_1,Q_2,Q_3]
+$$
+
+For the default six-qubit configuration:
+
+$$
+Q\in\mathbb{R}^{36}
+$$
+
+The fused representation is then passed to a classical classifier:
+
+$$
+\hat{y}
+=
+WQ+b
+$$
+
+or through a small multilayer classification head depending on the experiment.
+
+This creates the final hybrid architecture:
+
+$$
+\boxed{
+CNN
+\rightarrow
+Parallel\ QNNs
+\rightarrow
+Feature\ Fusion
+\rightarrow
+Classifier
+}
+$$
+
+---
+
+# 15. Classical Baseline
+
+To determine whether the quantum components provide useful information, the project includes a fully classical model.
+
+The classical baseline uses the same general CNN feature extraction strategy but does not contain quantum circuits.
 
 Conceptually:
 
 ```text
-q0 ── q1
-
-q2 ── q3
-
-q4 ── q5
+Image
+  │
+  ▼
+CNN
+  │
+  ▼
+Classical Feature Vector
+  │
+  ▼
+MLP / Linear Classifier
+  │
+  ▼
+Prediction
 ```
 
-followed by shifted interactions.
+This baseline is essential because a hybrid model should not be evaluated only by absolute accuracy.
+
+Instead, its performance should be compared with a comparable classical architecture.
 
 ---
 
-## Ring + Skip
+# 16. Datasets
 
-This pattern combines:
+The framework is evaluated across three image datasets.
 
-* nearest-neighbor interactions
-* longer-range skip interactions
+## 16.1 MNIST
 
-This increases connectivity while keeping the circuit relatively structured.
+**MNIST** is used as a relatively simple grayscale benchmark.
+
+| Property            | Value              |
+| ------------------- | ------------------ |
+| Domain              | Handwritten digits |
+| Image type          | Grayscale          |
+| Original image size | 28 × 28            |
+| Model input         | 32 × 32            |
+| Channels            | 1                  |
+| Number of classes   | 10                 |
+| Classes             | Digits 0–9         |
+
+The notebook uses a 32×32 resized representation with normalization:
+
+$$
+\mu=0.5,\qquad\sigma=0.5
+$$
+
+The experiment shown in the notebook uses a selected fraction of the training data.
+
+The reported execution configuration contains:
+
+```text
+Training samples:   10,800
+Validation samples: 1,200
+Test samples:      10,000
+```
+
+The validation subset is separated from the training portion before optimization.
 
 ---
 
-# 🔄 Dynamic Entanglement Routing
+## 16.2 CIFAR-10
 
-The entanglement pattern receives a layer-dependent shift:
+CIFAR-10 provides a significantly more challenging natural-image classification problem.
 
-```python
-current_shift = layer % n_qubits
+| Property            | Value          |
+| ------------------- | -------------- |
+| Domain              | Natural images |
+| Image type          | RGB            |
+| Original image size | 32 × 32        |
+| Model input         | 32 × 32        |
+| Channels            | 3              |
+| Number of classes   | 10             |
+| Training set        | 50,000 images  |
+| Test set            | 10,000 images  |
+
+The ten categories are:
+
+```text
+airplane
+automobile
+bird
+cat
+deer
+dog
+frog
+horse
+ship
+truck
 ```
 
-Therefore, different quantum layers can use different interaction connectivity.
+The training pipeline uses augmentation including:
 
-This provides a simple form of dynamic circuit routing while maintaining a relatively shallow architecture.
+* Random horizontal flip
+* Random crop
+* Padding
+* Tensor conversion
+* CIFAR-10 normalization
+
+The normalization parameters used are:
+
+$$
+\mu=(0.4914,0.4822,0.4465)
+$$
+
+and
+
+$$
+\sigma=(0.2023,0.1994,0.2010)
+$$
+
+The experiment uses a selected fraction of the training data for the demonstrated configuration.
+
+### Reported CIFAR-10 experiment
+
+The notebook reports:
+
+| Model                   | Test Accuracy |   Macro-F1 | Weighted-F1 |  Test Loss | Best Val. Accuracy |
+| ----------------------- | ------------: | ---------: | ----------: | ---------: | -----------------: |
+| HybridAmplitudeParallel |        0.7236 |     0.7211 |      0.7211 |     0.7965 |             0.6942 |
+| FullClassicalBaseline   |    **0.7327** | **0.7314** |  **0.7314** | **0.7605** |         **0.7004** |
+
+Number of epochs:
+
+$$
+15
+$$
+
+These values are the results recorded in the notebook and should be interpreted as results for the specific experimental configuration rather than as universal performance claims.
 
 ---
 
-# 📏 Quantum Measurements
+# 16.3 SeekThermal
 
-The final quantum representation is obtained by measuring two observables for every qubit:
+The third dataset extends the evaluation from conventional RGB/grayscale datasets to **thermal imagery**.
 
-```text
-Pauli-X expectation
-Pauli-Z expectation
-```
-
-The circuit returns:
-
-```python
-[
-    <X(q0)>,
-    <X(q1)>,
-    ...
-    <X(qN)>,
-    <Z(q0)>,
-    <Z(q1)>,
-    ...
-    <Z(qN)>
-]
-```
-
-For:
-
-```text
-6 qubits
-2 observables
-3 parallel heads
-```
-
-the resulting feature size is:
-
-```text
-6 × 2 × 3 = 36
-```
-
-These 36 quantum features are fed into the final classifier.
-
----
-
-# 🧮 Final Classifier
-
-The hybrid models use a linear classifier:
-
-```text
-Quantum Features
-      │
-      ▼
-Linear(36 → Number of Classes)
-      │
-      ▼
-Class Logits
-```
-
-For the SeekThermal experiment:
-
-```text
-36 quantum features
-        ↓
-3 output classes
-```
-
-The classes are:
-
-```text
-Car
-Cat
-Man
-```
-
----
-
-# 🆚 Classical Baseline
-
-To determine whether the quantum component provides useful representational behavior, the repository also implements:
-
-```text
-FullClassicalBaseline
-```
-
-The baseline uses the same classical backbone and replaces the quantum module with a classical multilayer classifier.
-
-Its classifier is:
-
-```text
-Feature Vector
-     │
-     ▼
-Linear
-     │
-     ▼
-ReLU
-     │
-     ▼
-Linear
-     │
-     ▼
-SELU
-     │
-     ▼
-Linear
-     │
-     ▼
-Class Prediction
-```
-
-This provides a direct classical reference against which the hybrid variants can be evaluated.
-
----
-
-# 📊 Experimental Variants
-
-The complete experimental comparison is:
-
-| Model                      | Classical CNN |      Quantum Module | Parallel Heads |
-| -------------------------- | ------------: | ------------------: | -------------: |
-| `HybridAmplitudeParallel`  |             ✓ |           Amplitude |              3 |
-| `HybridDenseAngleParallel` |             ✓ |         Dense Angle |              3 |
-| `HybridZZFeatureParallel`  |             ✓ | ZZ Feature Encoding |              3 |
-| `FullClassicalBaseline`    |             ✓ |                None |              0 |
-
----
-
-# 🌡️ SeekThermal Dataset Experiment
-
-One of the experiments applies the architecture to the **SeekThermal** thermal image dataset.
-
-The task is a three-class object classification problem:
-
-```text
-Car
-Cat
-Man
-```
-
-The dataset is organized into training and testing directories:
+Dataset structure:
 
 ```text
 SeekThermal/
@@ -728,798 +718,182 @@ SeekThermal/
 │   └── Man/
 │
 └── Test/
-    ├── Car/
-    ├── Cat/
-    └── Man/
+    ├── car/
+    ├── cat/
+    └── man/
 ```
+
+The dataset contains three object categories:
+
+| Class     | Training Images | Test Images |
+| --------- | --------------: | ----------: |
+| Car       |           1,168 |         356 |
+| Cat       |           1,782 |         356 |
+| Man       |           1,782 |         356 |
+| **Total** |       **4,732** |   **1,068** |
+
+The images are resized to:
+
+$$
+128\times96
+$$
+
+with three input channels in the implementation.
+
+Normalization is:
+
+$$
+\mu=(0.5,0.5,0.5)
+$$
+
+$$
+\sigma=(0.5,0.5,0.5)
+$$
 
 ---
 
-# 🖼️ Image Preprocessing
+# 17. SeekThermal Train/Validation Split
 
-Images are resized to:
-
-```text
-128 × 96
-```
-
-and converted into tensors.
-
-The normalization is:
-
-```python
-mean = [0.5, 0.5, 0.5]
-std  = [0.5, 0.5, 0.5]
-```
-
-Therefore, the preprocessing pipeline is:
-
-```text
-Original Thermal Image
-        │
-        ▼
-Resize(128 × 96)
-        │
-        ▼
-ToTensor()
-        │
-        ▼
-Normalize(mean=0.5, std=0.5)
-        │
-        ▼
-CNN
-```
-
----
-
-# 🧪 Train / Validation / Test Split
-
-The training directory is divided into training and validation subsets.
+The training set is divided using a stratified split.
 
 The validation ratio is:
 
-```text
-15%
-```
+$$
+r_{val}=0.15
+$$
 
-The split is stratified using the class labels.
+and the split uses:
 
-Conceptually:
+$$
+seed=42
+$$
 
-```text
-Train Directory
-      │
-      ├──────── 85% → Training
-      │
-      └──────── 15% → Validation
-```
+Stratification is performed according to class labels to preserve class proportions.
 
-The test dataset is loaded independently from the `Test` directory.
+The independent test set is not used during training.
 
 ---
 
-# ⚠️ Label Mapping
+# 18. SeekThermal Label-Mapping Issue
 
-During the SeekThermal experiment, the notebook identifies a mismatch between the folder names and the semantic contents of the `Car` and `Cat` directories.
+An important dataset-cleaning issue was identified in the SeekThermal notebook.
 
-The training/validation labels are therefore explicitly remapped:
+The original `ImageFolder` mapping was:
 
 ```text
-Original:
-Car → 0
-Cat → 1
-Man → 2
-
-Corrected:
 Car → 0
 Cat → 1
 Man → 2
 ```
 
-with the underlying `Car ↔ Cat` sample-label assignment corrected where required.
+However, inspection of the folder contents revealed that the semantic content of the `Car` and `Cat` directories had been swapped.
 
-The notebook verifies that the resulting class mapping is consistent across training, validation and test datasets.
+The notebook therefore defines the remapping:
 
-This correction is important for reproducibility and should remain documented rather than silently removed.
+$$
+0\rightarrow1
+$$
 
----
+$$
+1\rightarrow0
+$$
 
-# ⚙️ SeekThermal Configuration
+$$
+2\rightarrow2
+$$
 
-The main configuration used in the provided experiment is:
-
-| Parameter         |            Value |
-| ----------------- | ---------------: |
-| Number of classes |                3 |
-| Classes           |  Car / Cat / Man |
-| Image height      |              128 |
-| Image width       |               96 |
-| Batch size        |               64 |
-| Epochs            |               10 |
-| Learning rate     |             1e-3 |
-| Weight decay      |             1e-4 |
-| Optimizer         |            AdamW |
-| Scheduler         | Cosine Annealing |
-| Number of qubits  |                6 |
-| Quantum layers    |                3 |
-| Parallel heads    |                3 |
-| Quantum device    |  `default.qubit` |
-| Shots             |           `None` |
-| ZZ scale          |             0.25 |
-| Feature dimension |               64 |
-| AMP               |         Disabled |
-
-> The notebook contains a few configuration comments/assignments that differ from the final `ExperimentConfig`; the table above follows the effective `ExperimentConfig` values used by the training pipeline.
-
----
-
-# ⚛️ Quantum Simulator
-
-The experiments use PennyLane with:
+or equivalently:
 
 ```python
-qml.device(
-    "default.qubit",
-    wires=n_qubits,
-    shots=None
-)
-```
-
-Therefore, the reported experiments are performed using a **state-vector quantum simulator**, not a physical quantum processor.
-
-This distinction is important:
-
-> The project demonstrates hybrid quantum-classical machine learning using quantum simulation. It should not be interpreted as demonstrating quantum computational speedup.
-
----
-
-# 🏋️ Training
-
-The training pipeline uses PyTorch and supports:
-
-* Adam
-* AdamW
-* Cosine Annealing learning-rate scheduling
-* Automatic mixed precision when supported
-* Gradient clipping
-* Early stopping
-* Best-model checkpointing
-
-The default optimizer is:
-
-```text
-AdamW
-```
-
-with:
-
-```text
-Learning rate = 0.001
-Weight decay  = 0.0001
-```
-
----
-
-# ⏹️ Early Stopping
-
-The training procedure monitors validation accuracy.
-
-When the validation accuracy does not improve for a predefined number of epochs, training stops early.
-
-The best model state is saved:
-
-```text
-{name}_best.pth
-```
-
-This helps prevent unnecessary training and preserves the best-performing model rather than simply using the final epoch.
-
----
-
-# 📈 Evaluation Metrics
-
-The models are evaluated using:
-
-### Accuracy
-
-```text
-Correct predictions / Total predictions
-```
-
-### Macro F1
-
-F1 is calculated independently for each class and then averaged equally.
-
-This is particularly useful when class distributions are not perfectly balanced.
-
-### Weighted F1
-
-F1 scores are weighted according to class support.
-
-### Confusion Matrix
-
-The confusion matrix provides class-level information about:
-
-```text
-Car → Car
-Car → Cat
-Car → Man
-
-Cat → Car
-Cat → Cat
-Cat → Man
-
-Man → Car
-Man → Cat
-Man → Man
-```
-
-### Classification Report
-
-The notebook also generates a complete classification report containing per-class:
-
-* precision
-* recall
-* F1-score
-* support
-
----
-
-# 📊 Results
-
-The experimental pipeline automatically stores the training histories and test results.
-
-The following models are evaluated:
-
-```text
-HybridAmplitudeParallel
-HybridZZFeatureParallel
-HybridDenseAngleParallel
-FullClassicalBaseline
-```
-
-The final comparison is intended to have the following form:
-
-| Model                    | Test Accuracy | Macro F1 | Weighted F1 | Loss |
-| ------------------------ | ------------: | -------: | ----------: | ---: |
-| HybridAmplitudeParallel  |             — |        — |           — |    — |
-| HybridZZFeatureParallel  |             — |        — |           — |    — |
-| HybridDenseAngleParallel |             — |        — |           — |    — |
-| FullClassicalBaseline    |             — |        — |           — |    — |
-
-The notebook saves these results to:
-
-```text
-reports/
-├── all_histories.json
-└── all_test_results.json
-```
-
-The exact numerical values should be populated from the generated JSON files after the experiment has been executed.
-
----
-
-# 📉 Training Curves
-
-The project also generates scientific-style figures for:
-
-* Training loss
-* Validation loss
-* Training accuracy
-* Validation accuracy
-* Validation Macro-F1
-* Validation Weighted-F1
-* Convergence behavior
-* Model comparison
-
-Figures are stored under the experiment output directory:
-
-```text
-figures/
-└── test_XXX/
-```
-
----
-
-# 📁 Output Structure
-
-A typical experiment generates an output structure similar to:
-
-```text
-results_hybrid_SeekThermal_parallel/
-│
-├── models/
-│   ├── HybridAmplitudeParallel_best.pth
-│   ├── HybridZZFeatureParallel_best.pth
-│   ├── HybridDenseAngleParallel_best.pth
-│   └── FullClassicalBaseline_best.pth
-│
-├── reports/
-│   ├── all_histories.json
-│   └── all_test_results.json
-│
-└── figures/
-    └── test_XXX/
-        └── ...
-```
-
----
-
-# 🧪 Reproducibility
-
-A fixed random seed is used:
-
-```python
-SEED = 42
-```
-
-The experiment seeds:
-
-* Python random
-* NumPy
-* PyTorch
-* CUDA
-
-and configures cuDNN for deterministic behavior.
-
-This improves reproducibility, although exact results can still depend on the software/hardware environment.
-
----
-
-# 💻 Installation
-
-Create a Python environment:
-
-```bash
-python -m venv .venv
-```
-
-Activate it.
-
-### Windows
-
-```bash
-.venv\Scripts\activate
-```
-
-### Linux / macOS
-
-```bash
-source .venv/bin/activate
-```
-
-Install the main dependencies:
-
-```bash
-pip install torch torchvision
-pip install pennylane
-pip install numpy
-pip install scikit-learn
-pip install matplotlib
-pip install seaborn
-pip install pillow
-pip install jupyter
-```
-
----
-
-# ▶️ Running the Experiment
-
-Launch Jupyter:
-
-```bash
-jupyter notebook
-```
-
-Open the relevant notebook:
-
-```text
-paralell-hybridmoded.ipynb
-```
-
-or the SeekThermal experiment:
-
-```text
-SeekThermal_parallel_HybridModel.ipynb
-```
-
-Update the dataset path in the configuration:
-
-```python
-dataset_root = "PATH_TO_DATASET"
-```
-
-Then execute the notebook cells sequentially.
-
----
-
-# 🔬 Experimental Workflow
-
-The complete workflow is:
-
-```text
-1. Set random seed
-        │
-        ▼
-2. Load dataset
-        │
-        ▼
-3. Create stratified train/validation split
-        │
-        ▼
-4. Apply image preprocessing
-        │
-        ▼
-5. Build DataLoaders
-        │
-        ▼
-6. Build CNN backbone
-        │
-        ▼
-7. Build parallel quantum models
-        │
-        ▼
-8. Build classical baseline
-        │
-        ▼
-9. Train each model
-        │
-        ▼
-10. Apply early stopping
-        │
-        ▼
-11. Restore best validation model
-        │
-        ▼
-12. Evaluate on test set
-        │
-        ▼
-13. Generate classification reports
-        │
-        ▼
-14. Generate confusion matrices
-        │
-        ▼
-15. Save JSON results
-        │
-        ▼
-16. Generate scientific plots
-```
-
----
-
-# 🧩 Repository Experiments
-
-The repository is designed around a common architectural concept while allowing different datasets and configurations.
-
-The major experimental direction is:
-
-```text
-                 Parallel Hybrid Architecture
-                           │
-          ┌────────────────┴────────────────┐
-          │                                 │
-    Image Dataset A                   SeekThermal
-          │                                 │
-          ▼                                 ▼
-   Same Core Architecture            Same Core Architecture
-          │                                 │
-          └───────────────┬─────────────────┘
-                          │
-                          ▼
-              Model Comparison
-```
-
-This makes the project suitable for studying whether the parallel quantum-classical design remains useful when the image domain changes.
-
----
-
-# 🔍 Why Parallel Quantum Heads?
-
-A single quantum circuit receives only one transformed representation of the classical features.
-
-The parallel design instead creates multiple pathways:
-
-```text
-                     CNN Features
-                          │
-        ┌─────────────────┼─────────────────┐
-        │                 │                 │
-        ▼                 ▼                 ▼
-   Representation 1  Representation 2  Representation 3
-        │                 │                 │
-        ▼                 ▼                 ▼
-      QNN 1             QNN 2             QNN 3
-        │                 │                 │
-        └─────────────────┼─────────────────┘
-                          ▼
-                    Feature Fusion
-```
-
-The intended benefit is increased representational diversity without simply making one quantum circuit deeper.
-
-This is particularly relevant because increasing PQC depth can make optimization more difficult and can increase circuit execution cost.
-
----
-
-# ⚖️ Hybrid vs Classical Learning
-
-The project should be interpreted as an experimental comparison rather than a claim that quantum models universally outperform classical CNNs.
-
-The classical baseline answers:
-
-> How well can the same image-classification task be solved using only the classical representation?
-
-The hybrid models answer:
-
-> What changes when the learned representation is processed through parallel parameterized quantum circuits?
-
-The comparison should therefore consider more than accuracy alone:
-
-```text
-Accuracy
-Macro-F1
-Weighted-F1
-Loss
-Parameter count
-Training time
-Inference cost
-Convergence
-```
-
----
-
-# 🚧 Limitations
-
-Several limitations should be considered.
-
-## 1. Quantum simulation cost
-
-The current implementation uses:
-
-```text
-PennyLane default.qubit
-```
-
-on a classical computer.
-
-Quantum simulation can become expensive as the number of qubits and circuit evaluations increase.
-
----
-
-## 2. No demonstrated quantum speedup
-
-Using a quantum simulator does not establish quantum computational advantage.
-
-The purpose of this repository is to investigate a hybrid architecture and its behavior.
-
----
-
-## 3. Small quantum width
-
-The SeekThermal configuration uses:
-
-```text
-6 qubits
-```
-
-This is intentionally manageable for simulation.
-
----
-
-## 4. Dataset-specific preprocessing
-
-The SeekThermal experiment uses specific image dimensions and class mappings.
-
-When applying the architecture to another dataset, the following must be reconsidered:
-
-* input channels
-* image dimensions
-* number of classes
-* normalization
-* feature dimension
-* quantum encoding requirements
-
----
-
-# 🔮 Future Work
-
-Potential future improvements include:
-
-### Real Quantum Hardware
-
-Replace:
-
-```text
-default.qubit
-```
-
-with an actual quantum backend.
-
-### Larger Quantum Circuits
-
-Investigate:
-
-```text
-8+ qubits
-```
-
-while measuring the effect on performance and computational cost.
-
-### Noise-Aware Training
-
-Evaluate:
-
-* bit-flip noise
-* depolarizing noise
-* readout noise
-* gate noise
-
-### Automated Quantum Architecture Search
-
-Automatically search over:
-
-* qubit count
-* circuit depth
-* encoding method
-* entanglement topology
-* observable selection
-
-### Better Multi-Head Fusion
-
-Instead of simple concatenation, investigate:
-
-```text
-Attention
-Gating
-Learnable fusion
-Weighted averaging
-Quantum-classical feature fusion
-```
-
-### More Classical Baselines
-
-Future experiments could include:
-
-* ResNet
-* EfficientNet
-* MobileNet
-* Vision Transformer
-* lightweight CNNs
-
-to provide stronger classical reference points.
-
----
-
-# 📚 Scientific Context
-
-Hybrid quantum-classical neural networks combine conventional deep-learning components with parameterized quantum circuits.
-
-The broader literature explores several approaches, including quantum convolutional neural networks, quantum-classical CNNs, variational quantum classifiers, and parallel quantum-classical architectures.
-
-The architecture in this repository is particularly related to the idea of increasing the **width** of quantum processing through parallel branches rather than relying only on deeper quantum circuits.
-
-Recent work has also investigated parallel quantum-classical convolutional architectures and the relationship between PQC structure, expressibility, entanglement, trainability and robustness.
-
----
-
-# 📖 References
-
-Useful background:
-
-1. PennyLane — Quantum machine learning framework.
-2. PyTorch — Deep learning framework.
-3. Research literature on hybrid quantum-classical neural networks.
-4. Research literature on parameterized quantum circuits and variational quantum algorithms.
-5. Research literature on quantum convolutional neural networks.
-
-For broader context on parallel quantum-classical image-classification architectures, see:
-
-> Liu, H., & Lou, X. *A Parallel Hybrid Quantum-Classical Convolutional Design Using Parameterized Quantum Circuits for Image Classification*, Quantum Engineering, 2026.
-
-The referenced work discusses parallel quantum-classical feature extraction, PQC design, circuit expressibility, entanglement and robustness.
-
----
-
-# 📝 Citation
-
-If this repository is used in academic work, please cite the corresponding project/paper information associated with the repository.
-
-A BibTeX entry can be added here once the final publication metadata for this specific implementation is available:
-
-```bibtex
-@misc{parallel_quantum_classical_image_classification,
-  title  = {A Parallel Quantum-Classical Hybrid Architecture for Image Classification},
-  author = {Ammar},
-  year   = {2026},
-  url    = {https://github.com/ammar31300/A-Parallel-Quantum-Classical-Hybrid-Architecture-for-Image-Classification}
+remap = {
+    0: 1,
+    1: 0,
+    2: 2
 }
 ```
 
----
-
-# 👨‍💻 Project Structure
-
-A recommended repository structure is:
-
-```text
-A-Parallel-Quantum-Classical-Hybrid-Architecture-for-Image-Classification/
-│
-├── paralell-hybridmoded.ipynb
-├── SeekThermal_parallel_HybridModel.ipynb
-│
-├── README.md
-│
-├── data/
-│   └── ...
-│
-├── results/
-│   ├── models/
-│   ├── reports/
-│   └── figures/
-│
-└── requirements.txt
-```
+This is an important reproducibility consideration and should be retained in any future version of the dataset pipeline.
 
 ---
 
-# ⭐ Key Takeaways
+# 19. Unified Dataset Comparison
 
-The main concept of this project can be summarized as:
+| Dataset     | Image Type            | Channels | Input Size | Classes | Main Challenge                    |
+| ----------- | --------------------- | -------: | ---------: | ------: | --------------------------------- |
+| MNIST       | Grayscale             |        1 |      32×32 |      10 | Simple low-level patterns         |
+| CIFAR-10    | RGB                   |        3 |      32×32 |      10 | Natural-image variability         |
+| SeekThermal | Thermal/RGB-formatted |        3 |     128×96 |       3 | Thermal-domain object recognition |
 
-```text
-Classical CNN
-     +
-Parallel Quantum Neural Networks
-     +
-Multiple Quantum Encodings
-     +
-Trainable Variational Circuits
-     +
-Quantum Measurements
-     +
-Classical Classification
-     =
-Parallel Hybrid Quantum-Classical Image Classifier
-```
-
-The architecture is designed to explore how multiple shallow quantum processing branches can complement classical convolutional feature extraction.
-
-The SeekThermal experiment further demonstrates how the same core architecture can be adapted to a different image domain and a three-class thermal object-classification problem.
+This three-dataset design is useful because the model is tested under increasingly different visual conditions rather than being optimized for a single benchmark.
 
 ---
 
-# 📌 Reproducibility Note
+# 20. Experimental Models
 
-The numerical results shown in the repository should always be interpreted together with:
+The main model families are:
 
-* dataset version
-* preprocessing configuration
-* random seed
-* number of qubits
-* quantum circuit depth
-* number of parallel heads
-* simulator/backend
-* optimizer
-* learning rate
-* number of training epochs
+### Model A — Full Classical Baseline
 
-Changing any of these settings can change the final results.
+$$
+X
+\rightarrow CNN
+\rightarrow Classifier
+$$
+
+No quantum processing.
 
 ---
 
-# 📄 License
+### Model B — Hybrid Amplitude Parallel
 
-Add the repository's actual license here if one is defined.
-
-If no license is currently included in the repository, users should treat the source code as **all rights reserved** until an explicit open-source license is added.
+$$
+X
+\rightarrow CNN
+\rightarrow
+\{QNN_{Amp}^{(1)},QNN_{Amp}^{(2)},QNN_{Amp}^{(3)}\}
+\rightarrow Fusion
+\rightarrow Classifier
+$$
 
 ---
 
-## 🚀 Summary
+### Model C — Hybrid Dense Angle Parallel
 
-This project investigates a practical hybrid quantum-classical strategy for image classification:
+$$
+X
+\rightarrow CNN
+\rightarrow
+\{QNN_{Angle}^{(1)},QNN_{Angle}^{(2)},QNN_{Angle}^{(3)}\}
+\rightarrow Fusion
+\rightarrow Classifier
+$$
 
-**CNNs extract spatial information → parallel quantum circuits transform learned features → quantum measurements form a compact representation → a classical classifier produces the final prediction.**
+---
 
-By implementing multiple quantum encoding strategies and comparing them against a classical baseline, the repository provides a useful experimental framework for studying the role of parallel quantum processing in modern image-classification pipelines.
+### Model D — Hybrid ZZ Feature Parallel
+
+$$
+X
+\rightarrow CNN
+\rightarrow
+\{QNN_{ZZ}^{(1)},QNN_{ZZ}^{(2)},QNN_{ZZ}^{(3)}\}
+\rightarrow Fusion
+\rightarrow Classifier
+$$
+
+---
+
+# 21. Experimental Configuration
+
+The SeekThermal implementation uses approximately:
+
+| Parameter         |             Value |
+| ----------------- | ----------------: |
+| Random Seed       |                42 |
+| Image Height      |               128 |
+| Image Width       |                96 |
+| Classes           |                 3 |
+| Batch Size        |                64 |
+| Epochs            |                10 |
+| Learning Rate     |       \(10^{-3}\) |
+| Weight Decay      |       \(10^{-4}\) 
